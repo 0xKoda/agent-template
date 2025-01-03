@@ -13,6 +13,7 @@ rules = [
 [vars]
 ENABLE_TELEGRAM = true
 ENABLE_FARCASTER = true
+ENABLE_TWITTER = true
 LLM_MODEL = "openai/gpt-3.5-turbo"  # Model to use for LLM responses
 
 # Cron Triggers
