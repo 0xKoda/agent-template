@@ -20,6 +20,12 @@ export interface Env {
 
   // Memory configuration (required for agent functionality)
   agent_memory: KVNamespace;
+
+  ENABLE_TWITTER: boolean;
+  TWITTER_API_KEY: string;
+  TWITTER_API_KEY_SECRET: string;
+  TWITTER_ACCESS_TOKEN: string;
+  TWITTER_ACCESS_TOKEN_SECRET: string;
 }
 
 export interface Author {
@@ -69,7 +75,6 @@ export interface ClientConfig {
 // Client-specific configurations
 export interface TelegramConfig extends ClientConfig {
   botToken: string;
-  webhookSecret: string;
 }
 
 export interface FarcasterConfig extends ClientConfig {
@@ -90,4 +95,11 @@ export interface ScheduledEvent {
   cron: string;
   scheduledTime: number;
   type: string;
+}
+
+export interface TwitterConfig extends ClientConfig {
+  apiKey: string;
+  apiKeySecret: string;
+  accessToken: string;
+  accessTokenSecret: string;
 }

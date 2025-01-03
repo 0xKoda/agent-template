@@ -1,5 +1,5 @@
 import { Logger } from './logger';
-import type { Message, TelegramConfig } from '../types';
+import type { Message, TelegramConfig } from './types';
 
 export class TelegramClient {
   private token: string;
@@ -45,30 +45,38 @@ export class TelegramClient {
   }
 
   /**
-   * Convert a Telegram update to our Message format
+   * Transform Telegram webhook to our Message type
    */
-  convertUpdate(update: any): Message | null {
-    Logger.info('Converting Telegram update:', update);
-    
-    if (!update.message?.text) {
-      Logger.info('Not a text message:', update);
-      return null; // Not a text message
-    }
+  transformWebhook(webhook: any): Message | null {
+    try {
+      if (!webhook.message) {
+        Logger.info('No message in webhook:', webhook);
+        return null;
+      }
 
-    const message = update.message;
-    return {
-      id: String(message.message_id),
-      text: message.text,
-      author: {
-        username: message.from.username || String(message.from.id),
-        displayName: `${message.from.first_name} ${message.from.last_name || ''}`.trim(),
-        chatId: message.chat.id
-      },
-      timestamp: message.date * 1000, // Convert Unix timestamp to milliseconds
-      platform: 'telegram',
-      replyTo: message.reply_to_message?.message_id?.toString(),
-      raw: update
-    };
+      const message = webhook.message;
+      if (!message.text) {
+        Logger.info('No text in message:', message);
+        return null;
+      }
+
+      return {
+        id: message.message_id.toString(),
+        text: message.text,
+        author: {
+          username: message.from.username || String(message.from.id),
+          displayName: `${message.from.first_name} ${message.from.last_name || ''}`.trim(),
+          chatId: message.chat.id
+        },
+        timestamp: message.date * 1000,
+        platform: 'telegram',
+        replyTo: message.reply_to_message?.message_id?.toString(),
+        raw: webhook
+      };
+    } catch (error) {
+      Logger.error('Error transforming Telegram webhook:', error);
+      return null;
+    }
   }
 
   /**

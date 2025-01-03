@@ -1,4 +1,4 @@
-import type { Message, ActionResult, Env } from '../types';
+import type { Message, ActionResult, Env } from '../core/types';
 
 export abstract class Action {
   readonly name: string;

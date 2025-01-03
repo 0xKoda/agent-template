@@ -1,4 +1,4 @@
-import type { Env } from '../types';
+import type { Env } from './types';
 import { Logger } from './logger';
 
 const MEMORY_TYPES = {

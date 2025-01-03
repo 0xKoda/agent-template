@@ -1,5 +1,4 @@
-// import type { Env, Message, FarcasterConfig } from '../types';
-import type {FarcasterConfig } from '../types';
+import type { FarcasterConfig, Message } from './types';
 import { Logger } from './logger';
 import { Memory } from './memory';
 
@@ -65,4 +64,55 @@ export class FarcasterClient {
     return data;
   }
 
+  /**
+   * Transform Farcaster webhook to our Message type
+   */
+  transformWebhook(webhook: any): Message | null {
+    try {
+      const { data } = webhook;
+      if (!data?.text || !data?.author?.username) {
+        Logger.error('Invalid Farcaster webhook format:', webhook);
+        return null;
+      }
+
+      return {
+        id: data.hash,
+        text: data.text,
+        author: {
+          username: data.author.username,
+          displayName: data.author.display_name,
+          fid: data.author.fid.toString(),
+          custody_address: data.author.custody_address,
+          verifications: data.author.verifications
+        },
+        timestamp: new Date(data.timestamp).getTime(),
+        platform: 'farcaster',
+        hash: data.hash,
+        thread_hash: data.thread_hash,
+        parent_hash: data.parent_hash,
+        parent_url: data.parent_url,
+        embeds: data.embeds || [],
+        raw: webhook
+      };
+    } catch (error) {
+      Logger.error('Error transforming Farcaster webhook:', error);
+      return null;
+    }
+  }
+
+  // Helper function to trim text to Farcaster's character limit
+  private trimToFarcasterLimit(text: string): string {
+    const FARCASTER_LIMIT = 280;
+    if (text.length <= FARCASTER_LIMIT) return text;
+
+    // Try to cut at the last sentence
+    let trimmed = text.slice(0, FARCASTER_LIMIT);
+    const lastPeriod = trimmed.lastIndexOf('.');
+    
+    if (lastPeriod > 0) {
+      trimmed = trimmed.slice(0, lastPeriod + 1);
+    }
+
+    return trimmed;
+  }
 }

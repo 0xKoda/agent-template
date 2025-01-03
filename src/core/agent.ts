@@ -2,15 +2,17 @@ import { TelegramClient } from './telegram';
 import { FarcasterClient } from './farcaster';
 import { Memory } from './memory';
 import { Logger } from './logger';
-import type { Message, Env, ActionResult, TelegramConfig, FarcasterConfig } from '../types';
+import { TwitterClient } from './twitter';
+import type { Message, Env, ActionResult, TelegramConfig, FarcasterConfig, TwitterConfig } from './types';
 import { loadActions } from '../actions';
 import character from '../config/character.json';
 
 export class Agent {
   private env: Env;
-  private memory: Memory;
+  private memory?: Memory;
   private telegram?: TelegramClient;
   private farcaster?: FarcasterClient;
+  private twitter?: TwitterClient;
   private character: typeof character;
   private actions: Record<string, any>;
 
@@ -32,8 +34,7 @@ export class Agent {
       const telegramConfig: TelegramConfig = {
         enabled: true,
         env: this.env,
-        botToken: this.env.TELEGRAM_BOT_TOKEN,
-        webhookSecret: this.env.TELEGRAM_WEBHOOK_SECRET
+        botToken: this.env.TELEGRAM_BOT_TOKEN
       };
       this.telegram = new TelegramClient(telegramConfig);
     }
@@ -55,6 +56,18 @@ export class Agent {
       };
       this.farcaster = new FarcasterClient(farcasterConfig);
     }
+
+    if (this.env.ENABLE_TWITTER) {
+      const twitterConfig: TwitterConfig = {
+        enabled: true,
+        env: this.env,
+        apiKey: this.env.TWITTER_API_KEY,
+        apiKeySecret: this.env.TWITTER_API_KEY_SECRET,
+        accessToken: this.env.TWITTER_ACCESS_TOKEN,
+        accessTokenSecret: this.env.TWITTER_ACCESS_TOKEN_SECRET
+      };
+      this.twitter = new TwitterClient(twitterConfig);
+    }
   }
 
   updateEnv(env: Env) {
@@ -72,8 +85,35 @@ export class Agent {
     try {
       Logger.info('Processing message:', { platform: message.platform, text: message.text });
 
+      // Transform message based on platform
+      let transformedMessage: Message | null = null;
+      switch (message.platform) {
+        case 'telegram':
+          if (!this.telegram) {
+            throw new Error('Telegram client not initialized');
+          }
+          transformedMessage = this.telegram.transformWebhook(message.raw);
+          break;
+
+        case 'farcaster':
+          if (!this.farcaster) {
+            throw new Error('Farcaster client not initialized');
+          }
+          transformedMessage = this.farcaster.transformWebhook(message.raw);
+          break;
+
+        default:
+          Logger.error('Unknown platform:', message.platform);
+          throw new Error(`Unknown platform: ${message.platform}`);
+      }
+
+      if (!transformedMessage) {
+        Logger.error('Failed to transform message:', message);
+        throw new Error('Failed to transform message');
+      }
+
       // Check for actions first, before getting any history
-      const actionResult = await this.checkActions(message);
+      const actionResult = await this.checkActions(transformedMessage);
       if (actionResult) {
         if (actionResult.context) {
           // If action provides context, use LLM to generate response
@@ -86,7 +126,7 @@ export class Agent {
           );
           
           const finalResponse = `${actionResult.text}\n\n🔍 Analysis:\n${llmResponse}`;
-          await this.sendReply(finalResponse, message);
+          await this.sendReply(finalResponse, transformedMessage);
           
           return {
             text: finalResponse,
@@ -94,25 +134,25 @@ export class Agent {
           };
         } else {
           // If no context, send action result directly
-          await this.sendReply(actionResult.text, message);
+          await this.sendReply(actionResult.text, transformedMessage);
           return actionResult;
         }
       }
 
       // Only get conversation history if no action was triggered
-      const conversationId = await this.getConversationId(message);
+      const conversationId = await this.getConversationId(transformedMessage);
       const history = await this.memory.getConversations(conversationId);
       
       // Get long-term memory context
-      const longTermContext = await this.getLongTermContext(message.author.username);
+      const longTermContext = await this.getLongTermContext(transformedMessage.author.username);
 
       // Generate response using character and context
-      const response = await this.generateResponse(message, history, longTermContext);
+      const response = await this.generateResponse(transformedMessage, history, longTermContext);
 
       // Store message in conversation history
       await this.memory.storeConversation(conversationId, {
         role: 'user',
-        content: message.text,
+        content: transformedMessage.text,
       });
 
       // Store response in conversation history
@@ -122,7 +162,7 @@ export class Agent {
       });
 
       // Send reply
-      await this.sendReply(response, message);
+      await this.sendReply(response, transformedMessage);
 
       return {
         text: response,
@@ -168,12 +208,22 @@ export class Agent {
 
   private async sendReply(text: string, message: Message): Promise<void> {
     try {
+      Logger.info('Attempting to send reply:', { platform: message.platform, text: text });
+      
       switch (message.platform) {
         case 'telegram':
-          if (this.telegram && message.author.chatId) {
-            await this.telegram.sendMessage(message.author.chatId, text);
+          if (!this.telegram) {
+            Logger.error('Telegram client not initialized');
+            throw new Error('Telegram client not initialized');
           }
+          if (!message.author.chatId) {
+            Logger.error('No chatId in message:', message);
+            throw new Error('No chatId in message');
+          }
+          Logger.info('Sending Telegram message:', { chatId: message.author.chatId, text: text });
+          await this.telegram.sendMessage(message.author.chatId, text);
           break;
+          
         case 'farcaster':
           if (this.farcaster) {
             // Use the parent hash from the message for replies
@@ -182,6 +232,13 @@ export class Agent {
             await this.farcaster.publishCast(text, parentHash);
           }
           break;
+          
+        case 'twitter':
+          if (this.env.ENABLE_TWITTER) {
+            await this.publishTweet(text);
+          }
+          break;
+          
         default:
           Logger.error('Unknown platform:', message.platform);
       }
@@ -197,6 +254,32 @@ export class Agent {
     } else {
       throw new Error('Farcaster client not initialized');
     }
+  }
+
+  private getTwitterClient(): TwitterClient {
+    if (!this.env.ENABLE_TWITTER) {
+      throw new Error('Twitter is not enabled');
+    }
+
+    const config: TwitterConfig = {
+      enabled: true,
+      env: this.env,
+      apiKey: this.env.TWITTER_API_KEY,
+      apiKeySecret: this.env.TWITTER_API_KEY_SECRET,
+      accessToken: this.env.TWITTER_ACCESS_TOKEN,
+      accessTokenSecret: this.env.TWITTER_ACCESS_TOKEN_SECRET
+    };
+
+    return new TwitterClient(config);
+  }
+
+  async publishTweet(text: string): Promise<void> {
+    if (!this.env.ENABLE_TWITTER) {
+      throw new Error('Twitter is not enabled');
+    }
+
+    const twitterClient = this.getTwitterClient();
+    await twitterClient.postTweet(text);
   }
 
   async generateResponse(message: Message, history: any[], longTermContext: string): Promise<string> {
@@ -232,10 +315,12 @@ export class Agent {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/arjunb023/ax',
+        'X-Title': 'Ax'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-3.5-turbo',
+        model: this.env.LLM_MODEL || 'openai/gpt-3.5-turbo',
         messages,
         max_tokens: 700,
         temperature: 0.7
