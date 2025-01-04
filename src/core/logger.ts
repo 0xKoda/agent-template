@@ -1,3 +1,11 @@
+/**
+ * Logging Utility
+ * Provides centralized logging functionality with different log levels:
+ * - debug: Detailed debugging information
+ * - info: General information about application flow
+ * - warn: Warning messages for potentially problematic situations
+ * - error: Error messages for serious problems
+ */
 export class Logger {
   private static logs: string[] = [];
 

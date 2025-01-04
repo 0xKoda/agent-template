@@ -1,6 +1,6 @@
 import { Agent } from '../core/agent';
 import { Logger } from '../core/logger';
-import type { Env } from '../types';
+import type { Env } from '../core/types';
 
 /**
  * ScheduledJobs class handles all scheduled tasks for the agent.

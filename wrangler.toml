@@ -13,8 +13,10 @@ rules = [
 [vars]
 ENABLE_TELEGRAM = true
 ENABLE_FARCASTER = true
-ENABLE_TWITTER = true
+ENABLE_BROWSER_TWITTER = true   # Twitter browser client
+ENABLE_TWITTER = false   # Twitter API
 LLM_MODEL = "openai/gpt-3.5-turbo"  # Model to use for LLM responses
+TWITTER_COOKIES ='[]'
 
 # Cron Triggers
 [triggers]

@@ -1,12 +1,21 @@
+/**
+ * Twitter API Implementation
+ * Defines the Implementation of posting via the x API:
+ * - Handles auth headers
+ * - Posts tweet
+ */
+
 import { Logger } from './logger';
 import type { TwitterConfig } from './types';
+import type { TwitterInterface } from './twitter_interface';
 
-export class TwitterClient {
+export class TwitterClient implements TwitterInterface {
   private apiKey: string;
   private apiKeySecret: string;
   private accessToken: string;
   private accessTokenSecret: string;
-  
+  private isInitialized: boolean = false;
+
   constructor(config: TwitterConfig) {
     Logger.info('Initializing Twitter client with config:', {
       hasApiKey: !!config.apiKey,
@@ -21,6 +30,11 @@ export class TwitterClient {
     this.apiKeySecret = config.apiKeySecret;
     this.accessToken = config.accessToken;
     this.accessTokenSecret = config.accessTokenSecret;
+  }
+
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
   }
 
   private async generateAuthHeader(method: string, url: string, params: Record<string, string> = {}): Promise<string> {

@@ -1,10 +1,21 @@
+/**
+ * Core Type Definitions
+ * Contains all shared types and interfaces:
+ * - Platform-specific configuration types
+ * - Message and author interfaces
+ * - Environment configuration types
+ * - Shared utility types
+ */
+
 export interface Env {
   // OpenRouter API key for LLM access
   OPENROUTER_API_KEY: string;
 
   // Feature flags (optional to maintain backward compatibility)
-  ENABLE_TELEGRAM?: boolean;
-  ENABLE_FARCASTER?: boolean;
+  ENABLE_TELEGRAM: string | boolean;
+  ENABLE_FARCASTER: string | boolean;
+  ENABLE_TWITTER: string | boolean;
+  ENABLE_BROWSER_TWITTER: string | boolean;
 
   // LLM model (optional)
   LLM_MODEL?: string;
@@ -21,11 +32,12 @@ export interface Env {
   // Memory configuration (required for agent functionality)
   agent_memory: KVNamespace;
 
-  ENABLE_TWITTER: boolean;
+  // Twitter configuration
   TWITTER_API_KEY: string;
   TWITTER_API_KEY_SECRET: string;
   TWITTER_ACCESS_TOKEN: string;
   TWITTER_ACCESS_TOKEN_SECRET: string;
+  TWITTER_COOKIES: string;
 }
 
 export interface Author {
@@ -42,7 +54,7 @@ export interface Message {
   text: string;
   author: Author;
   timestamp: number;
-  platform: 'farcaster' | 'telegram';
+  platform: 'farcaster' | 'telegram' | 'twitter';
   replyTo?: string;
   hash?: string;      // Farcaster-specific (cast hash)
   thread_hash?: string; // Farcaster-specific

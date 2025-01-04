@@ -1,13 +1,18 @@
+/**
+ * Telegram Client Implementation
+ * Handles all Telegram-related functionality:
+ * - Sending messages to Telegram chats
+ * - Processing incoming messages
+ * - Managing Telegram-specific message formatting
+ */
 import { Logger } from './logger';
 import type { Message, TelegramConfig } from './types';
 
 export class TelegramClient {
   private token: string;
-  private webhookSecret: string;
 
   constructor(config: TelegramConfig) {
     this.token = config.botToken;
-    this.webhookSecret = config.webhookSecret;
   }
 
   /**
@@ -79,11 +84,4 @@ export class TelegramClient {
     }
   }
 
-  /**
-   * Verify that the webhook request is authentic
-   */
-  verifyWebhook(request: Request): boolean {
-    const signature = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
-    return signature === this.webhookSecret;
-  }
 }

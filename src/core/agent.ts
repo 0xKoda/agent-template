@@ -1,3 +1,11 @@
+/**
+ * Core Agent class that handles AI interactions and message processing
+ * This file contains the main Agent class which is responsible for:
+ * - Generating LLM responses using the configured model
+ * - Managing interactions across different platforms (Twitter, Farcaster, Telegram)
+ * - Processing and routing messages
+ * - Managing API calls and rate limiting
+ */
 import { TelegramClient } from './telegram';
 import { FarcasterClient } from './farcaster';
 import { Memory } from './memory';
@@ -315,9 +323,7 @@ export class Agent {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/arjunb023/ax',
-        'X-Title': 'Ax'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: this.env.LLM_MODEL || 'openai/gpt-3.5-turbo',
@@ -338,10 +344,13 @@ export class Agent {
     switch (platform) {
       case 'telegram':
         // Telegram has a 4096 character limit
-        return content.length > 4096 ? content.slice(0, 4093) + '...' : content;
+        return content.length > 2000 ? content.slice(0, 1997) + '...' : content;
+      case 'twitter':
+        // Twitter has a 280 character limit
+        return content.length > 280 ? content.slice(0, 277) + '...' : content;
       case 'farcaster':
-        // Farcaster has a 320 character limit
-        return content.length > 320 ? content.slice(0, 317) + '...' : content;
+        // Farcaster has a 700 character limit
+        return content.length > 700 ? content.slice(0, 697) + '...' : content;
       default:
         Logger.warn('Unknown platform, no character limit applied:', platform);
         return content;

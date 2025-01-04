@@ -1,3 +1,11 @@
+/**
+ * Memory Management System
+ * Handles the storage and retrieval of conversation history and context:
+ * - Manages message history across different platforms
+ * - Implements context window management
+ * - Handles conversation state and thread tracking
+ */
+
 import type { Env } from './types';
 import { Logger } from './logger';
 

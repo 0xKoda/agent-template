@@ -1,3 +1,11 @@
+/**
+ * Farcaster Client Implementation
+ * Handles interactions with the Farcaster social protocol including:
+ * - Posting casts (messages)
+ * - Managing user interactions
+ * - Handling Farcaster-specific message formatting
+ */
+
 import type { FarcasterConfig, Message } from './types';
 import { Logger } from './logger';
 import { Memory } from './memory';
