@@ -18,9 +18,9 @@ import character from '../config/character.json';
 export class Agent {
   private env: Env;
   private memory?: Memory;
-  private telegram?: TelegramClient;
-  private farcaster?: FarcasterClient;
-  private twitter?: TwitterClient;
+  private telegram: TelegramClient | null = null;
+  private farcaster: FarcasterClient | null = null;
+  private twitter: TwitterClient | null = null;
   private character: typeof character;
   private actions: Record<string, any>;
 
@@ -32,13 +32,13 @@ export class Agent {
     
     // Initialize actions with env
     Object.values(this.actions).forEach(action => action.setEnv(env));
-
-    // Initialize enabled clients
-    this.initializeClients();
   }
 
-  private initializeClients() {
-    if (this.env.ENABLE_TELEGRAM) {
+  private async initializeTelegramClient(): Promise<TelegramClient> {
+    if (!this.telegram) {
+      if (!this.env.ENABLE_TELEGRAM) {
+        throw new Error('Telegram is not enabled');
+      }
       const telegramConfig: TelegramConfig = {
         enabled: true,
         env: this.env,
@@ -46,8 +46,14 @@ export class Agent {
       };
       this.telegram = new TelegramClient(telegramConfig);
     }
+    return this.telegram;
+  }
 
-    if (this.env.ENABLE_FARCASTER) {
+  private async initializeFarcasterClient(): Promise<FarcasterClient> {
+    if (!this.farcaster) {
+      if (!this.env.ENABLE_FARCASTER) {
+        throw new Error('Farcaster is not enabled');
+      }
       Logger.info('Initializing Farcaster client with config:', { 
         enabled: this.env.ENABLE_FARCASTER,
         hasApiKey: Boolean(this.env.FARCASTER_NEYNAR_API_KEY),
@@ -64,8 +70,14 @@ export class Agent {
       };
       this.farcaster = new FarcasterClient(farcasterConfig);
     }
+    return this.farcaster;
+  }
 
-    if (this.env.ENABLE_TWITTER) {
+  private async initializeTwitterClient(): Promise<TwitterClient> {
+    if (!this.twitter) {
+      if (!this.env.ENABLE_TWITTER) {
+        throw new Error('Twitter is not enabled');
+      }
       const twitterConfig: TwitterConfig = {
         enabled: true,
         env: this.env,
@@ -76,14 +88,12 @@ export class Agent {
       };
       this.twitter = new TwitterClient(twitterConfig);
     }
+    return this.twitter;
   }
 
   updateEnv(env: Env) {
     this.env = env;
     this.memory = new Memory({ agent_memory: env.agent_memory });
-    
-    // Reinitialize clients with new env
-    this.initializeClients();
     
     // Update actions with new env
     Object.values(this.actions).forEach(action => action.setEnv(env));
@@ -92,6 +102,19 @@ export class Agent {
   async processMessage(message: Message): Promise<ActionResult> {
     try {
       Logger.info('Processing message:', { platform: message.platform, text: message.text });
+
+      // Initialize only the client needed for this message
+      let client = null;
+      switch (message.platform) {
+        case 'telegram':
+          client = await this.initializeTelegramClient();
+          break;
+        case 'farcaster':
+          client = await this.initializeFarcasterClient();
+          break;
+        default:
+          throw new Error(`Unsupported platform: ${message.platform}`);
+      }
 
       // Transform message based on platform
       let transformedMessage: Message | null = null;
@@ -133,7 +156,7 @@ export class Agent {
             message.platform
           );
           
-          const finalResponse = `${actionResult.text}\n\n🔍 Analysis:\n${llmResponse}`;
+          const finalResponse = `${llmResponse}`;
           await this.sendReply(finalResponse, transformedMessage);
           
           return {
@@ -216,40 +239,38 @@ export class Agent {
 
   private async sendReply(text: string, message: Message): Promise<void> {
     try {
-      Logger.info('Attempting to send reply:', { platform: message.platform, text: text });
-      
+      Logger.info('Sending reply:', { text, platform: message.platform });
+
       switch (message.platform) {
         case 'telegram':
           if (!this.telegram) {
-            Logger.error('Telegram client not initialized');
             throw new Error('Telegram client not initialized');
           }
           if (!message.author.chatId) {
-            Logger.error('No chatId in message:', message);
-            throw new Error('No chatId in message');
+            throw new Error('No chatId in message author');
           }
-          Logger.info('Sending Telegram message:', { chatId: message.author.chatId, text: text });
           await this.telegram.sendMessage(message.author.chatId, text);
           break;
-          
+
         case 'farcaster':
-          if (this.farcaster) {
-            // Use the parent hash from the message for replies
-            const parentHash = message.hash;
-            Logger.info('Replying to Farcaster cast:', { parentHash, text });
-            await this.farcaster.publishCast(text, parentHash);
+          if (!this.farcaster) {
+            throw new Error('Farcaster client not initialized');
           }
+          await this.farcaster.publishCast(text, message.hash);
           break;
-          
+
         case 'twitter':
-          if (this.env.ENABLE_TWITTER) {
-            await this.publishTweet(text);
+          if (!this.twitter) {
+            throw new Error('Twitter client not initialized');
           }
+          await this.twitter.postTweet(text);
           break;
-          
+
         default:
-          Logger.error('Unknown platform:', message.platform);
+          throw new Error(`Unknown platform: ${message.platform}`);
       }
+
+      Logger.info('Successfully sent reply');
     } catch (error) {
       Logger.error('Error sending reply:', error);
       throw error;
@@ -314,6 +335,19 @@ export class Agent {
   async generateLLMResponse(messages: any[], platform: string): Promise<string> {
     Logger.debug('Generating LLM response:', { messages });
 
+    // Modify the last message (user prompt) to include character limit
+    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+      const lastMessage = messages[messages.length - 1];
+      switch (platform) {
+        case 'twitter':
+          lastMessage.content += '\n\nIMPORTANT: Your response MUST be under 250 characters.';
+          break;
+        case 'farcaster':
+          lastMessage.content += '\n\nIMPORTANT: Your response MUST be under 500 characters.';
+          break;
+      }
+    }
+
     const apiKey = this.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       throw new Error('Missing OpenRouter API key');
@@ -328,7 +362,7 @@ export class Agent {
       body: JSON.stringify({
         model: this.env.LLM_MODEL || 'openai/gpt-3.5-turbo',
         messages,
-        max_tokens: 700,
+        max_tokens: 400,
         temperature: 0.7
       })
     });

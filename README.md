@@ -17,13 +17,7 @@ If you are using cursor or windsurf, or another AI enabled code editor, you may 
 ### Platform Configuration
 
 1. **Twitter Setup**
-   - Two options for Twitter integration :
-     a) **Browser-based Authentication (⚠️ Warning! Depending on account age and engagement, this could shadowban your account)**:
-        - Set `ENABLE_BROWSER_TWITTER=true` in wrangler.toml
-        - Add Twitter cookies to your environment wrangler file
-        Format: `'[{"name":"auth_token","value":"...","domain":".x.com"},{"name":"ct0","value":"...","domain":".x.com"}]'`
-     
-     b) **API-based Authentication**:
+   -  **API-based Authentication**:
         - Set `ENABLE_TWITTER=true` in wrangler.toml
         - Add Twitter API credentials:
         ```bash
@@ -63,7 +57,7 @@ preview_id = "" # Add your preview ID here
 ## Features
 
 - Multi-platform support (Twitter, Telegram, Farcaster)
-- Two options for Twitter integration (Browser-based or API)
+- Twitter posts only (no replies or slop)
 - Two-tier memory system with Cloudflare KV (long and short-term memory)
 - Custom action system for handling commands
 - Scheduled jobs support
@@ -135,7 +129,6 @@ Configure platform settings in `wrangler.toml`:
 ENABLE_FARCASTER = true         # Enable/disable Farcaster
 ENABLE_TELEGRAM = true          # Enable/disable Telegram
 ENABLE_TWITTER = false          # Enable Twitter API client
-ENABLE_BROWSER_TWITTER = true   # Enable browser-based Twitter client
 ```
 
 ## Creating Scheduled Jobs

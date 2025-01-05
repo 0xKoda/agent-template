@@ -60,9 +60,7 @@ The agent has persistant and temporary memory using cloudflare KV
 ```toml
 ENABLE_TELEGRAM = true
 ENABLE_FARCASTER = true
-ENABLE_BROWSER_TWITTER = true
 ENABLE_TWITTER = false 
 LLM_MODEL = "openai/gpt-3.5-turbo"  # Model to use for LLM responses
-TWITTER_COOKIES ='[]'
 ```
 

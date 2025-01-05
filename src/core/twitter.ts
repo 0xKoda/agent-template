@@ -1,10 +1,3 @@
-/**
- * Twitter API Implementation
- * Defines the Implementation of posting via the x API:
- * - Handles auth headers
- * - Posts tweet
- */
-
 import { Logger } from './logger';
 import type { TwitterConfig } from './types';
 import type { TwitterInterface } from './twitter_interface';

@@ -10,7 +10,6 @@
 import { Agent } from './agent';
 import type { Env } from './types';
 import { Logger } from './logger';
-import { TwitterFactory } from './twitter_factory';
 
 export class WebhookHandler {
   private agent: Agent;
@@ -23,12 +22,6 @@ export class WebhookHandler {
 
   async handleWebhook(request: Request): Promise<Response> {
     try {
-      // Initialize Twitter client if enabled
-      let twitterClient = null;
-      if (this.env.ENABLE_TWITTER || this.env.ENABLE_BROWSER_TWITTER) {
-        twitterClient = await TwitterFactory.createClient(this.env);
-      }
-
       Logger.info('Received request:', { 
         method: request.method, 
         url: request.url,

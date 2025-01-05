@@ -41,7 +41,7 @@ npm create cloudflare@latest -- my-first-worker --template 0xkoda/agent-template
    wrangler secret put FARCASTER_NEYNAR_SIGNER_UUID
    wrangler secret put FARCASTER_FID
 
-   # Twitter secrets (choose API or Browser method)
+   # Twitter secrets 
    # For API-based authentication:
    wrangler secret put TWITTER_API_KEY
    wrangler secret put TWITTER_API_SECRET
@@ -52,17 +52,7 @@ npm create cloudflare@latest -- my-first-worker --template 0xkoda/agent-template
 
 5. **Platform Setup**
    - **Twitter**:
-     1. Choose your authentication method:
-        a) **Browser-based** (recommended for testing):
-           - Set `ENABLE_BROWSER_TWITTER=true` in wrangler.toml
-           - Format your cookies as JSON array add to [vars] in wrangler.toml **note: cookies will change, update them**:
-           ```json
-           [
-             {"name":"auth_token","value":"...","domain":".x.com"},
-             {"name":"ct0","value":"...","domain":".x.com"}
-           ]
-           ```
-        b) **API-based**:
+ **API-based**:
            - Set `ENABLE_TWITTER=true` in wrangler.toml
            - Get your API credentials from Twitter Developer Portal
    
@@ -205,7 +195,6 @@ In `wrangler.toml`:
 ENABLE_TELEGRAM = true          # Enable/disable Telegram bot
 ENABLE_FARCASTER = true        # Enable/disable Farcaster bot
 ENABLE_TWITTER = false         # Enable/disable Twitter API client
-ENABLE_BROWSER_TWITTER = true  # Enable/disable browser-based Twitter
 LLM_MODEL = "openai/gpt-3.5-turbo"  # LLM model to use
 ```
 
@@ -227,7 +216,7 @@ LLM_MODEL = "openai/gpt-3.5-turbo"  # LLM model to use
    - Test error handling scenarios
 
 4. **Security**
-   - Never commit secrets to version control, use wrangler secret put to encrypt secrets. Cookies change regularly so put in [vars]
+   - Never commit secrets to version control, use wrangler secret put to encrypt secrets.
    - Validate user inputs in actions
    - Use environment variables for client configuration
 

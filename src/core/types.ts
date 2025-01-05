@@ -8,29 +8,19 @@
  */
 
 export interface Env {
-  // OpenRouter API key for LLM access
-  OPENROUTER_API_KEY: string;
+  // KV Namespace for agent memory
+  agent_memory?: KVNamespace;
 
-  // Feature flags (optional to maintain backward compatibility)
+  // Feature flags
   ENABLE_TELEGRAM: string | boolean;
   ENABLE_FARCASTER: string | boolean;
   ENABLE_TWITTER: string | boolean;
-  ENABLE_BROWSER_TWITTER: string | boolean;
-
-  // LLM model (optional)
-  LLM_MODEL?: string;
+  LLM_MODEL: string;
 
   // Telegram configuration
   TELEGRAM_BOT_TOKEN: string;
+  TELEGRAM_CHAT_ID: string;
   TELEGRAM_WEBHOOK_SECRET: string;
-
-  // Farcaster configuration
-  FARCASTER_FID: string;
-  FARCASTER_NEYNAR_API_KEY: string;
-  FARCASTER_NEYNAR_SIGNER_UUID: string;
-
-  // Memory configuration (required for agent functionality)
-  agent_memory: KVNamespace;
 
   // Twitter configuration
   TWITTER_API_KEY: string;
@@ -38,6 +28,17 @@ export interface Env {
   TWITTER_ACCESS_TOKEN: string;
   TWITTER_ACCESS_TOKEN_SECRET: string;
   TWITTER_COOKIES: string;
+  TWITTER_EMAIL: string;
+  TWITTER_USERNAME: string;
+  TWITTER_PASSWORD: string;
+
+  // Farcaster configuration
+  FARCASTER_NEYNAR_API_KEY: string;
+  FARCASTER_NEYNAR_SIGNER_UUID: string;
+  FARCASTER_FID: string;
+
+  // OpenRouter configuration
+  OPENROUTER_API_KEY: string;
 }
 
 export interface Author {

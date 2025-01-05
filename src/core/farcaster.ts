@@ -14,6 +14,12 @@ export class FarcasterClient {
   private config: FarcasterConfig;
   private memory: Memory;
 
+  // Whitelist of FIDs that should always get a response
+  private ALWAYS_RESPOND_FIDS = new Set([4695]);
+
+  // Neynar score thresholds
+  private NEYNAR_SCORE_THRESHOLD = 0.75;
+
   constructor(config: FarcasterConfig) {
     this.config = config;
     this.memory = new Memory({ agent_memory: config.env.agent_memory });
@@ -108,19 +114,27 @@ export class FarcasterClient {
     }
   }
 
-  // Helper function to trim text to Farcaster's character limit
-  private trimToFarcasterLimit(text: string): string {
-    const FARCASTER_LIMIT = 280;
-    if (text.length <= FARCASTER_LIMIT) return text;
+  async shouldRespond(webhook: any): Promise<{shouldRespond: boolean, score: number, reasons: string[]}> {
+    const data = webhook.data;
+    const author = data.author;
+    const reasons: string[] = [];
 
-    // Try to cut at the last sentence
-    let trimmed = text.slice(0, FARCASTER_LIMIT);
-    const lastPeriod = trimmed.lastIndexOf('.');
-    
-    if (lastPeriod > 0) {
-      trimmed = trimmed.slice(0, lastPeriod + 1);
+    // 1. Check if FID is in always-respond list
+    if (this.ALWAYS_RESPOND_FIDS.has(author.fid)) {
+      reasons.push(`FID ${author.fid} is in always-respond list`);
+      return { shouldRespond: true, score: 1, reasons };
     }
 
-    return trimmed;
+    // 2. Check neynar score
+    const neynarScore = author.experimental?.neynar_user_score ?? 0;
+    const shouldRespond = neynarScore >= this.NEYNAR_SCORE_THRESHOLD;
+    reasons.push(`Neynar score: ${neynarScore}`);
+
+    return {
+      shouldRespond,
+      score: neynarScore,
+      reasons
+    };
   }
+
 }
